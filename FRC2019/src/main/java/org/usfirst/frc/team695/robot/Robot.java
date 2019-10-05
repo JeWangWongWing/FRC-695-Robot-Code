@@ -57,6 +57,10 @@ public class Robot extends SampleRobot
 	private NetworkTableEntry tabhatchright;
 	private NetworkTableEntry autopilot;
 	private NetworkTableEntry hatchstatus;
+	private NetworkTable limeLightValues;
+	private NetworkTableEntry limeTx;
+	private NetworkTableEntry limeTy;
+	private NetworkTableEntry limeTa;
 
 	// pneumatic objects
 	private Compressor comp = new Compressor(0);
@@ -189,7 +193,10 @@ public class Robot extends SampleRobot
 		tabhatchright = table.getEntry("tabhatchright");
 		autopilot = table.getEntry("autopilot");
 		hatchstatus = table.getEntry("hatchstatus");
-		
+		limeLightValues = inst.getTable("limelight");
+		limeTx = limeLightValues.getEntry("tx");
+		limeTy = limeLightValues.getEntry("ty");
+		limeTa = limeLightValues.getEntry("ta");
 		comp.enabled();
 
 		//countJack.setUpSource(0);
@@ -308,12 +315,17 @@ public class Robot extends SampleRobot
 		
 		double err;
 		
-		double driveleft;
-		double driveright;
+		double driveleft = 0;
+		double driveright = 0;
 	//	double drivesteer;
 		
 		double movejack;
-
+		double x;// = limeTx.getDouble(0.0);
+		double y;// = limeTy.getDouble(0.0);
+		double area;// = limeTa.getDouble(0.0);
+		double Kp = 0.03;  // Proportional control constant
+		double steeringAdjust = 0;
+		double minCommand = -0.015;
 		System.out.println("695:  operatorControl()...");
 		System.out.println("Ring is green!");
 		ringop.setNumber(3);
@@ -330,7 +342,12 @@ public class Robot extends SampleRobot
 			{
 				mgain = mgain + 0.1;
 			}
+			System.out.println("reachrf");
+			x = limeTx.getDouble(0.0);
+			y = limeTy.getDouble(0.0);
+			area = limeTa.getDouble(0.0);
 
+			System.out.println("LIME DATA: X: " + Double.toString(x) + " Y: " + Double.toString(y) + " AREA: " + Double.toString(area));
 			/* jack move
 			movejack = controllerDrive.getPOV();
 
@@ -533,9 +550,28 @@ public class Robot extends SampleRobot
 			else
 			{
 			*/
+			double forwardModifier = 0;
+			driveleft  = controllerDrive.getRawAxis(5);
+			driveright = controllerDrive.getRawAxis(1);
+			if (controllerDrive.getRawButton(3)) {
+				System.out.println("PBUTTON DOWN");
+				steeringAdjust = Kp*x;
+				if (x > 3.0)
+				{
+					steeringAdjust = Kp*x - minCommand;
+				}
+				else if (x < 3.0)
+				{
+					steeringAdjust = Kp*x + minCommand;
+					forwardModifier = -0.5;
+				}
+				driveleft += steeringAdjust;
+				driveright -= steeringAdjust;
+				driveright += forwardModifier;
+				driveleft += forwardModifier;
 				// drive speed
-				driveleft  = controllerDrive.getRawAxis(5);
-				driveright = controllerDrive.getRawAxis(1);
+			}
+				
 
 			/*	if ((driveleft > 0.1) && (driveleft < -0.1))
 				{
