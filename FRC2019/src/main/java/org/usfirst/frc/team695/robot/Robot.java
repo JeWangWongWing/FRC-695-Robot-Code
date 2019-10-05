@@ -563,8 +563,9 @@ public class Robot extends SampleRobot
 				else if (x < 3.0)
 				{
 					steeringAdjust = Kp*x + minCommand;
-					forwardModifier = -0.5;
+					forwardModifier = 0;//-0.5;
 				}
+				driveleft = driveright; //disable tank drive by ignoring right stick, left becomes the throttle
 				driveleft += steeringAdjust;
 				driveright -= steeringAdjust;
 				driveright += forwardModifier;
