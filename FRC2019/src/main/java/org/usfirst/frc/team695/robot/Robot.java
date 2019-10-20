@@ -1,12 +1,15 @@
 package org.usfirst.frc.team695.robot;
 
+
+
+
+
 import com.ctre.phoenix.motorcontrol.ControlMode;
 import com.ctre.phoenix.motorcontrol.can.VictorSPX;
 
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableEntry;
 import edu.wpi.first.networktables.NetworkTableInstance;
-import edu.wpi.first.wpilibj.AnalogInput;
 import edu.wpi.first.wpilibj.Compressor;
 import edu.wpi.first.wpilibj.Counter;
 import edu.wpi.first.wpilibj.DigitalInput;
@@ -51,38 +54,29 @@ public class Robot extends SampleRobot
 	// network communications
 	private NetworkTableInstance inst;
 	private NetworkTable table;
-	private NetworkTableEntry xerr;
+	private NetworkTableEntry pidx;
 	private NetworkTableEntry ringop;
 	private NetworkTableEntry tabhatchleft;
 	private NetworkTableEntry tabhatchright;
-	private NetworkTableEntry autopilot;
-	private NetworkTableEntry hatchstatus;
-	private NetworkTable limeLightValues;
-	private NetworkTableEntry limeTx;
-	private NetworkTableEntry limeTy;
-	private NetworkTableEntry limeTa;
-
+	
 	// pneumatic objects
 	private Compressor comp = new Compressor(0);
-	private Solenoid hatch = new Solenoid(0);	// #1
-	private Solenoid lift = new Solenoid(1);	// #2
-	private Solenoid forks = new Solenoid(2);	// #3
+	private Solenoid hatch = new Solenoid(0);
+	private Solenoid lift = new Solenoid(1);
+	private Solenoid forks = new Solenoid(2);
 
 	// user controller objects
-//	private Joystick controllerAux = new Joystick(3);
-	private Joystick controllerDrive = new Joystick(0);
+	private Joystick controllerLiftJack = new Joystick(3);
+	private Joystick controllerDrive = new Joystick(4);
 	
 	// lidar distance
 	private Counter lidar1 = new Counter(9);
 
 	// jack rotation counter
-	//private Counter countJack = new Counter();
-
-	// jack string potentiometer
-	private AnalogInput jackpos = new AnalogInput(0);
+	private Counter countJack = new Counter();
 
 	// jack in limit switch
-	//private DigitalInput jackin = new DigitalInput(1);
+	private DigitalInput jackin = new DigitalInput(1);
 	
 	// hatch detection switches
 	private DigitalInput hatchleft = new DigitalInput(6);
@@ -181,35 +175,25 @@ public class Robot extends SampleRobot
 
 		UsbCamera camera = CameraServer.getInstance().startAutomaticCapture();
 		camera.setResolution(160, 120);
-		camera.setExposureManual(50);
-		//camera.setBrightness(50);
-		
 
 		inst = NetworkTableInstance.getDefault();
 		table = inst.getTable("SmartDashboard");
-		xerr = table.getEntry("xerr");
+		pidx = table.getEntry("pidx");
 		ringop = table.getEntry("ringop");
 		tabhatchleft = table.getEntry("tabhatchleft");
-		tabhatchright = table.getEntry("tabhatchright");
-		autopilot = table.getEntry("autopilot");
-		hatchstatus = table.getEntry("hatchstatus");
-		limeLightValues = inst.getTable("limelight");
-		limeTx = limeLightValues.getEntry("tx");
-		limeTy = limeLightValues.getEntry("ty");
-		limeTa = limeLightValues.getEntry("ta");
+		tabhatchright = table.getEntry("tablehatchright");
+		
 		comp.enabled();
 
-		//countJack.setUpSource(0);
-		//countJack.setUpDownCounterMode();
-		//System.out.println("count: " + countJack.get());
+		countJack.setUpSource(0);
+		countJack.setUpDownCounterMode();
+		System.out.println("count: " + countJack.get());
 		
-		hatch.set(false);
-		lift.set(false);
 		forks.set(false);
 
-		lidar1.setMaxPeriod(1.0);
-	    lidar1.setSemiPeriodMode(true);
-	    lidar1.reset();
+		//lidar1.setMaxPeriod(1.0);
+	    //lidar1.setSemiPeriodMode(true);
+	    //lidar1.reset();
 
 		/*
 		CameraServer.getInstance().startAutomaticCapture();
@@ -272,10 +256,6 @@ public class Robot extends SampleRobot
 			if (++tickcnt == 100)
 			{
 				System.out.println("695:  disabled(" + (++cnt) + "):  Alliance is " + ringstr);
-				forks.set(false);
-				lift.set(false);
-				hatch.set(false);
-				hatchstatus.setNumber(0);
 				tickcnt = 0;
 			}
 
@@ -305,100 +285,113 @@ public class Robot extends SampleRobot
 	{
 		long hatchdebounce = 0;
 		long liftdebounce = 0;
+		long povdebounce = 0;
 		long forksdebounce = 0;
-
-		long headstand = 0;
 		
 		long tickcnt = 0;
-
-		double mgain = 0.5;
 		
-		double err;
+		double err, pgain = 0.3;
 		
-		double driveleft = 0;
-		double driveright = 0;
-	//	double drivesteer;
+		double driveleft;
+		double driveright;
+		double drivesteer;
 		
 		double movejack;
-		double x;// = limeTx.getDouble(0.0);
-		double y;// = limeTy.getDouble(0.0);
-		double area;// = limeTa.getDouble(0.0);
-		double Kp = 0.03;  // Proportional control constant
-		double steeringAdjust = 0;
-		double minCommand = -0.015;
+
 		System.out.println("695:  operatorControl()...");
 		System.out.println("Ring is green!");
 		ringop.setNumber(3);
-		//countJack.reset();
+		countJack.reset();
 
 		while(isEnabled())
 		{
-
-			if ((controllerDrive.getPOV() == 180) && (mgain > 0.1))
+			// *********
+			// jack code
+			// *********
+			
+			if (controllerLiftJack.getRawButton(2) == true)
 			{
-				mgain = mgain - 0.1;
+				if (forksdebounce == 0)
+				{
+					forksdebounce = 1;
+					if (forks.get() == true)
+					{
+						forks.set(false);
+					}
+					else
+					{
+						forks.set(true);
+					}
+				}
 			}
-			if ((controllerDrive.getPOV() == 0) && (mgain < 1))
-			{
-				mgain = mgain + 0.1;
-			}
-			System.out.println("reachrf");
-			x = limeTx.getDouble(0.0);
-			y = limeTy.getDouble(0.0);
-			area = limeTa.getDouble(0.0);
-
-			System.out.println("LIME DATA: X: " + Double.toString(x) + " Y: " + Double.toString(y) + " AREA: " + Double.toString(area));
-			/* jack move
-			movejack = controllerDrive.getPOV();
-
-			if (movejack == -1)
-			{
-				motorJack.set(ControlMode.PercentOutput, 0);
-			}
-
-			// jack moving in
 			else
 			{
-
-				if (movejack == 180)
-				{
-					if (jackpos.getValue() <= 3800)
-					{
-						motorJack.set(ControlMode.PercentOutput, 1);
-					}
-					else
-					{
-						motorJack.set(ControlMode.PercentOutput, 0);
-					}
-				}
+				forksdebounce = 0;
+			}
 			
-				// jack moving out
-				if (movejack == 0)
+			movejack = controllerLiftJack.getRawAxis(1);
+			if ((movejack >= -0.5) && (movejack <= 0.5))
+			{
+				movejack = 0;
+			}
+			
+			if (jackin.get() == true)
+			{
+				countJack.reset();
+			}
+			
+			// jack moving in
+			if (movejack > 0)
+			{
+				if (jackin.get() == true)
 				{
-					// if in headstand position, lowwer lift and pull forks back in as jack rises
-					if (headstand == 1)
+					movejack = 0;
+				}
+			}
+			
+			// jack moving out
+			if (movejack < 0)
+			{
+				if (countJack.get() >= 470)
+				{
+					movejack = 0;
+				}
+			}
+			motorJack.set(ControlMode.PercentOutput, movejack);
+						
+			if ((hatchleft.get() == true) && (hatchright.get() == true))
+			{
+				hatch.set(true);
+			}
+
+			if (controllerDrive.getPOV() != -1)
+			{
+				if (povdebounce == 0)
+				{
+					povdebounce = 1;
+					if (controllerDrive.getPOV() == 0)
 					{
-						if (jackpos.getValue() < 3000) // ????
+						if (pgain < 1)
 						{
-							lift.set(false);
-							forks.set(false);
+							pgain = pgain + 0.1;
 						}
 					}
-					if (jackpos.getValue() >= 2200)
+					if (controllerDrive.getPOV() == 180)
 					{
-						motorJack.set(ControlMode.PercentOutput, -1);
-						movejack = 0;
-					}
-					else
-					{
-						motorJack.set(ControlMode.PercentOutput, 0);
+						if (pgain > 0.1)
+						{
+							pgain = pgain - 0.1;
+						}
 					}
 				}
 			}
-			*/
-
-			// hatch lift up/down
-			if (controllerDrive.getRawButton(1) == true)
+			else
+			{
+				povdebounce = 0;
+			}
+									
+			// lift
+			if (controllerDrive.getRawButton(2) == true)
 			{
 				if (liftdebounce == 0)
 				{
@@ -418,15 +411,8 @@ public class Robot extends SampleRobot
 				liftdebounce = 0;
 			}
 			
-			// hatch auto grab
-			if ((hatchleft.get() == true) && (hatchright.get() == true))
-			{
-				hatch.set(true);
-				hatchstatus.setNumber(1);
-			}
-
-			// hatch manual grab/release
-			if (controllerDrive.getRawButton(6) == true)
+			// hatch
+			if (controllerDrive.getRawButton(8) == true)
 			{
 				if (hatchdebounce == 0)
 				{
@@ -434,12 +420,10 @@ public class Robot extends SampleRobot
 					if (hatch.get() == true)
 					{
 						hatch.set(false);
-						hatchstatus.setNumber(0);
 					}
 					else
 					{
 						hatch.set(true);
-						hatchstatus.setNumber(1);
 					}
 				}
 			}
@@ -448,7 +432,6 @@ public class Robot extends SampleRobot
 				hatchdebounce = 0;
 			}
 			
-			// update network tables for UI display
 			if (hatchleft.get() == true)
 			{
 				tabhatchleft.setNumber(1);
@@ -458,7 +441,6 @@ public class Robot extends SampleRobot
 				tabhatchleft.setNumber(0);
 			}
 			
-			// update network tables for UI display
 			if (hatchright.get() == true)
 			{
 				tabhatchright.setNumber(1);
@@ -467,144 +449,41 @@ public class Robot extends SampleRobot
 			{
 				tabhatchright.setNumber(0);
 			}
-
-			/* headstand
-			if (controllerDrive.getRawButton(1) == true)
-			{
-				if (forksdebounce == 0)
-				{
-					forksdebounce = 1;
-					if (forks.get() == true)
-					{
-						forks.set(false);
-						headstand = 0;
-					}
-					else
-					{
-						forks.set(true);
-						headstand = 1;
-					}
-				}
-			}
-			else
-			{
-				forksdebounce = 0;
-			}
-			*/
-
-
 			
 			//***********
 			// drive code
 			//***********
 
-			// check for auto move away from habitat wall
+			// drive speed
+			driveleft = driveright = controllerDrive.getRawAxis(1);
+			drivesteer = controllerDrive.getRawAxis(2);
 
-			/*
-			if (controllerAux.getRawButton(1) == true)
+			if ((driveleft >= -0.1) && (driveleft <= 0.1))
 			{
-				drivesteer = 0;
-
-				if (getLidar() < 20)
-				{
-					driveleft = driveright = -0.15;
-				}
-				else
-				{
-					driveleft = driveright = 0.05;
-
-					if (controllerAux.getRawButton(2) == true)
-					{
-						if (forksdebounce == 0)
-						{
-							forksdebounce = 1;
-							if (forks.get() == true)
-							{
-								forks.set(false);
-								headstand = 0;
-							}
-							else
-							{
-								forks.set(true);
-								headstand = 1;
-							}
-						}
-					}
-					else
-					{
-						forksdebounce = 0;
-					}
-					
-		
-				}
+				driveleft = driveright = 0;
 			}
-			*/
+			
+			// auto dock
+			err = pidx.getDouble(0) / 100;
 
-			/*
-			if (1 == 0)
+			if (controllerDrive.getRawButton(7) == true)
 			{
+
+				drivesteer = err * pgain;
+
+				if (driveleft > 0.25)
+				{
+					driveleft = driveright = 0.25;
+				}
+				if (driveleft < -0.25)
+				{
+					driveleft = driveright = -0.25;
+				}
 
 			}
 			
-			// otherwise, normal driving
-			else
-			{
-			*/
-			double forwardModifier = 0;
-			driveleft  = controllerDrive.getRawAxis(5);
-			driveright = controllerDrive.getRawAxis(1);
-			if (controllerDrive.getRawButton(3)) {
-				System.out.println("PBUTTON DOWN");
-				steeringAdjust = Kp*x;
-				if (x > 3.0)
-				{
-					steeringAdjust = Kp*x - minCommand;
-				}
-				else if (x < 3.0)
-				{
-					steeringAdjust = Kp*x + minCommand;
-					forwardModifier = 0;//-0.5;
-				}
-				driveleft = driveright; //disable tank drive by ignoring right stick, left becomes the throttle
-				driveleft += steeringAdjust;
-				driveright -= steeringAdjust;
-				driveright += forwardModifier;
-				driveleft += forwardModifier;
-				// drive speed
-			}
-				
-
-			/*	if ((driveleft > 0.1) && (driveleft < -0.1))
-				{
-					driveleft = driveright = 0;
-				}
-			{}*/
-				// autopilot steering
-				//err = xerr.getDouble(0) / 100;
-
-				//if (controllerDrive.getRawButton(5) == true)
-				//{
-					//autopilot.setNumber(1);
-
-				//	drivesteer = err;
-
-				//	if (driveleft > 0.25)
-				//	{
-				//		driveleft = driveright = 0.25;
-				//	}
-				//	if (driveleft < -0.25)
-				//	{
-				//		driveleft = driveright = -0.25;
-				//	}
-
-				//}
-				//else
-				//{
-				//	autopilot.setNumber(0);
-				//}
 			
-			
-			
+
 			// check for dime turn drive
 		//	if ((driveleft >= -0.1) && (driveleft <= 0.1))
 		//	{
@@ -618,7 +497,7 @@ public class Robot extends SampleRobot
 		//	{
 				
 				// apply steering to move
-		/*		if (drivesteer > 0)
+				if (drivesteer > 0)
 				{
 					driveleft = driveleft * (1 - drivesteer);
 				}
@@ -627,57 +506,48 @@ public class Robot extends SampleRobot
 					driveright = driveright * (1 + drivesteer);
 				}
 
-			} */
-
-			driveleft = mgain * driveleft;
-			driveright = mgain * driveright;
+				// adjust speed if elevator raised
+				driveleft = regulate(driveleft, 0);
+				driveright = regulate(driveright, 0);
+				
+		//	}
 
 			motorL1.set(ControlMode.PercentOutput, driveleft);
 			motorL2.set(ControlMode.PercentOutput, driveleft);
 
 			motorR1.set(ControlMode.PercentOutput, -1 * driveright);
 			motorR2.set(ControlMode.PercentOutput, -1 * driveright);
-		}
-		
-		}
 
 						
 			//******************************
 			// diagnostic print every second
 			//******************************
-	/*		if (++tickcnt == 100)
+			if (++tickcnt == 100)
 			{
-				//System.out.println(controllerDrive.getRawAxis(0));
-				//System.out.println(controllerDrive.getRawAxis(4));
-				//System.out.println("");
 				tickcnt = 0;
-				//System.out.println("POV: " + controllerDrive.getPOV());
 				//System.out.println("raw button 2: " + controllerDrive.getRawButton(2));
-				System.out.println("driveleft=" + driveleft + ", driveright=" + driveright + ", drivesteer=" + drivesteer);
-				//System.out.println("ERR: " + err + ", GAIN: " + pgain);
+				//System.out.println("driveleft=" + driveleft + ", driveright=" + driveright + ", drivesteer=" + drivesteer);
+				System.out.println("GAIN: " + pgain);
 				//System.out.println("JACK: " + countJack.get());
 				//System.out.println("695:  operatorControl(" + (++cnt) + ")");
 				//System.out.println(hatchleft.get() + " / " + hatchright.get());
 				//System.out.println("hatch: " + hatch.get() + ":  " + hatchleft.get() + " / " + hatchright.get());
+				//System.out.println("   jack count: " + countJack.get());
 				//System.out.println("   jack distance: " + getLidar());
-				//if (forks.get() == true)
-				//{
-			//		System.out.println("   * * * HEADSTAND * * *");
-		//		}
 				//System.out.println("   jack in: " + jackin.get());
 				//System.out.println("   movejack: " + movejack);
-				//System.out.println("jackpos: " + jackpos.getValue());
+				leds();
 		
 			}
 			
 			//***********************
 			// time delay for roborio
 			//***********************
-			Timer.delay(0.025);
+			Timer.delay(0.01);
 			
 		}		
 	}
-	*/
+	
 	/****************************************************************/
 	/****************************************************************/
 	/****************************************************************/
