@@ -9,6 +9,5 @@
     "bin/": true,
     ".classpath": true,
     ".project": true
-  },
-  "python.pythonPath": "C:\\Users\\BHS Robotics\\AppData\\Local\\Programs\\Python\\Python37-32\\python.exe"
+  }
 }
