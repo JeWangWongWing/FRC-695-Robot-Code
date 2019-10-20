@@ -58,7 +58,10 @@ public class Robot extends SampleRobot
 	private NetworkTableEntry ringop;
 	private NetworkTableEntry tabhatchleft;
 	private NetworkTableEntry tabhatchright;
-	
+	private NetworkTable limeLightValues;
+	private NetworkTableEntry limeTx;
+	private NetworkTableEntry limeTy;
+	private NetworkTableEntry limeTa;
 	// pneumatic objects
 	private Compressor comp = new Compressor(0);
 	private Solenoid hatch = new Solenoid(0);
@@ -182,7 +185,10 @@ public class Robot extends SampleRobot
 		ringop = table.getEntry("ringop");
 		tabhatchleft = table.getEntry("tabhatchleft");
 		tabhatchright = table.getEntry("tablehatchright");
-		
+		limeLightValues = inst.getTable("limelight");
+		limeTx = limeLightValues.getEntry("tx");
+		limeTy = limeLightValues.getEntry("ty");
+		limeTa = limeLightValues.getEntry("ta"); 		
 		comp.enabled();
 
 		countJack.setUpSource(0);
@@ -296,6 +302,14 @@ public class Robot extends SampleRobot
 		double driveright;
 		double drivesteer;
 		
+		double x;// = limeTx.getDouble(0.0);
+		double y;// = limeTy.getDouble(0.0);
+		double area;// = limeTa.getDouble(0.0);
+		double Kp = 0.03;  // Proportional control constant
+		double steeringAdjust = 0;
+		double minCommand = -0.015;
+
+
 		double movejack;
 
 		System.out.println("695:  operatorControl()...");
@@ -511,7 +525,34 @@ public class Robot extends SampleRobot
 				driveright = regulate(driveright, 0);
 				
 		//	}
+		x = limeTx.getDouble(0.0);
+		y = limeTy.getDouble(0.0);
+		area = limeTa.getDouble(0.0);
 
+		System.out.println("LIME DATA: X: " + Double.toString(x) + " Y: " + Double.toString(y) + " AREA: " + Double.toString(area));
+		double forwardModifier = 0;
+		driveleft  = controllerDrive.getRawAxis(5);
+		driveright = controllerDrive.getRawAxis(1);
+		if (controllerDrive.getRawButton(3)) {
+			System.out.println("PBUTTON DOWN");
+			steeringAdjust = Kp*x;
+			if (x > 3.0)
+			{
+				steeringAdjust = Kp*x - minCommand;
+			}
+			else if (x < 3.0)
+			{
+				steeringAdjust = Kp*x + minCommand;
+				forwardModifier = 0;//-0.5;
+			}
+			driveleft = driveright; //disable tank drive by ignoring right stick, left becomes the throttle
+			driveleft += steeringAdjust;
+			driveright -= steeringAdjust;
+			driveright += forwardModifier;
+			driveleft += forwardModifier;
+			// drive speed
+		}
+			
 			motorL1.set(ControlMode.PercentOutput, driveleft);
 			motorL2.set(ControlMode.PercentOutput, driveleft);
 
