@@ -70,7 +70,7 @@ public class Robot extends SampleRobot
 
 	// user controller objects
 	private Joystick controllerLiftJack = new Joystick(3);
-	private Joystick controllerDrive = new Joystick(4);
+	private Joystick controllerDrive = new Joystick(0);
 	
 	// lidar distance
 	private Counter lidar1 = new Counter(9);
@@ -176,8 +176,8 @@ public class Robot extends SampleRobot
 	{
 		System.out.println("695:  robotInit()");
 
-		UsbCamera camera = CameraServer.getInstance().startAutomaticCapture();
-		camera.setResolution(160, 120);
+		//UsbCamera camera = CameraServer.getInstance().startAutomaticCapture();
+		//camera.setResolution(160, 120);
 
 		inst = NetworkTableInstance.getDefault();
 		table = inst.getTable("SmartDashboard");
@@ -468,9 +468,9 @@ public class Robot extends SampleRobot
 			// drive code
 			//***********
 
-			// drive speed
+			// drive speedn
 			driveleft = driveright = controllerDrive.getRawAxis(1);
-			drivesteer = controllerDrive.getRawAxis(2);
+			drivesteer = controllerDrive.getRawAxis(4);
 
 			if ((driveleft >= -0.1) && (driveleft <= 0.1))
 			{
