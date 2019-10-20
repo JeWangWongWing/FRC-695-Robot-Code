@@ -131,8 +131,8 @@ public class Robot extends SampleRobot {
       // The motors will be updated every 5ms
       Timer.delay(0.005);
      if (Lstick.getRawButton(3) == true){
-       driveleft = 0.2*(Lstick.getRawAxis(1)-Lstick.getRawAxis(4));
-       driveright = 0.2*(Lstick.getRawAxis(1)+Lstick.getRawAxis(4));
+       driveleft = 0.2*(Lstick.getRawAxis(1)-Lstick.getRawAxis(0));
+       driveright = 0.2*(Lstick.getRawAxis(1)+Lstick.getRawAxis(0));
        //double power = 0.3;
        motorL1.set(ControlMode.PercentOutput, driveleft);
        motorL2.set(ControlMode.PercentOutput, driveleft);
