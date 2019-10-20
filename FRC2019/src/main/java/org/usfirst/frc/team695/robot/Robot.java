@@ -531,8 +531,8 @@ public class Robot extends SampleRobot
 
 		System.out.println("LIME DATA: X: " + Double.toString(x) + " Y: " + Double.toString(y) + " AREA: " + Double.toString(area));
 		double forwardModifier = 0;
-		driveleft  = controllerDrive.getRawAxis(5);
-		driveright = controllerDrive.getRawAxis(1);
+		//driveleft  = controllerDrive.getRawAxis(5);
+		//driveright = controllerDrive.getRawAxis(1);
 		if (controllerDrive.getRawButton(3)) {
 			System.out.println("PBUTTON DOWN");
 			steeringAdjust = Kp*x;
@@ -545,7 +545,7 @@ public class Robot extends SampleRobot
 				steeringAdjust = Kp*x + minCommand;
 				forwardModifier = 0;//-0.5;
 			}
-			driveleft = driveright; //disable tank drive by ignoring right stick, left becomes the throttle
+			//driveleft = driveright; //disable tank drive by ignoring right stick, left becomes the throttle
 			driveleft += steeringAdjust;
 			driveright -= steeringAdjust;
 			driveright += forwardModifier;
