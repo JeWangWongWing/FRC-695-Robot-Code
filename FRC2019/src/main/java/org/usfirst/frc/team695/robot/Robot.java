@@ -19,10 +19,6 @@ import edu.wpi.first.wpilibj.SampleRobot;
 import edu.wpi.first.wpilibj.Solenoid;
 import edu.wpi.first.wpilibj.Timer;
 
-import edu.wpi.cscore.UsbCamera;
-
-import edu.wpi.first.cameraserver.CameraServer;
-
 /*
 XBOX controls:
 
@@ -84,19 +80,22 @@ public class Robot extends SampleRobot
 	// hatch detection switches
 	private DigitalInput hatchleft = new DigitalInput(6);
 	private DigitalInput hatchright = new DigitalInput(5);
-	
+	private DigitalInput pistonRetractDetector = new DigitalInput(5); //value to be ssigned, for the retraction of the jack
 	// motor controllers
 	private VictorSPX motorL1 = new VictorSPX(1);
 	private VictorSPX motorL2 = new VictorSPX(2);
 	private VictorSPX motorR1 = new VictorSPX(3);
 	private VictorSPX motorR2 = new VictorSPX(4);
-	private VictorSPX motorJack = new VictorSPX(8);
+	private VictorSPX motorJack = new VictorSPX(8); 
 
 
 	/****************************************************************/
 	/****************************************************************/
 	/****************************************************************/
+	//private void retractPiston() {
 
+
+	//}
 	public void leds()
 	{
 	}
@@ -328,14 +327,7 @@ public class Robot extends SampleRobot
 				if (forksdebounce == 0)
 				{
 					forksdebounce = 1;
-					if (forks.get() == true)
-					{
-						forks.set(false);
-					}
-					else
-					{
-						forks.set(true);
-					}
+					forks.set(!forks.get()); //switch fork state
 				}
 			}
 			else
