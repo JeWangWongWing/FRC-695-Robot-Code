@@ -46,11 +46,14 @@ buttons:
 
 public class Robot extends SampleRobot
 {
-	
+	private int buttonBlueX = 3;
+	private int buttonGreenA = 1;
+	private int buttonRedB = 2;
+	private int buttonYellowY = 4;
 	// network communications
 	private NetworkTableInstance inst;
 	private NetworkTable table;
-	private NetworkTableEntry pidx;
+	//private NetworkTableEntry pidx;
 	private NetworkTableEntry ringop;
 	private NetworkTableEntry tabhatchleft;
 	private NetworkTableEntry tabhatchright;
@@ -62,7 +65,7 @@ public class Robot extends SampleRobot
 	private Compressor comp = new Compressor(0);
 	private Solenoid hatch = new Solenoid(0);
 	private Solenoid lift = new Solenoid(1);
-	private Solenoid forks = new Solenoid(2);
+	private Solenoid boostPiston = new Solenoid(2);
 
 	// user controller objects
 	private Joystick controllerLiftJack = new Joystick(1);
@@ -132,7 +135,7 @@ public class Robot extends SampleRobot
 
 		inst = NetworkTableInstance.getDefault();
 		table = inst.getTable("SmartDashboard");
-		pidx = table.getEntry("pidx");
+		//pidx = table.getEntry("pidx");
 		ringop = table.getEntry("ringop");
 		tabhatchleft = table.getEntry("tabhatchleft");
 		tabhatchright = table.getEntry("tablehatchright");
@@ -141,7 +144,7 @@ public class Robot extends SampleRobot
 		limeTy = limeLightValues.getEntry("ty");
 		limeTa = limeLightValues.getEntry("ta"); 		
 		comp.enabled();
-		forks.set(false);
+		boostPiston.set(false);
 		
 	}
 
@@ -207,7 +210,7 @@ public class Robot extends SampleRobot
 		long hatchdebounce = 0;
 		long liftdebounce = 0;
 		long povdebounce = 0;
-		long forksdebounce = 0;
+		long boostPistonDebounce = 0;
 		
 		long tickcnt = 0;
 		
@@ -232,20 +235,20 @@ public class Robot extends SampleRobot
 		while(isEnabled())
 		{
 			// *********
-			// jack code
+			// boost piston code
 			// *********
 			
-			if (controllerLiftJack.getRawButton(2) == true)
+			if (controllerLiftJack.getRawButton(buttonBlueX) == true)
 			{
-				if (forksdebounce == 0)
+				if (boostPistonDebounce == 0)
 				{
-					forksdebounce = 1;
-					forks.set(!forks.get()); //switch fork state
+					boostPistonDebounce = 1;
+					boostPiston.set(!boostPiston.get()); //switch fork state
 				}
 			}
 			else
 			{
-				forksdebounce = 0;
+				boostPistonDebounce = 0;
 			}
 			
 			retractJackUnlessAlreadyRetracted(controllerLiftJack.getRawAxis(1));
@@ -281,7 +284,7 @@ public class Robot extends SampleRobot
 			}
 									
 			// lift
-			if (controllerDrive.getRawButton(2) == true)
+			if (controllerDrive.getRawButton(buttonRedB) == true)
 			{
 				if (liftdebounce == 0)
 				{
@@ -302,7 +305,7 @@ public class Robot extends SampleRobot
 			}
 			
 			// hatch
-			if (controllerDrive.getRawButton(8) == true)
+			if (controllerDrive.getRawButton(buttonYellowY) == true)
 			{
 				if (hatchdebounce == 0)
 				{
@@ -352,7 +355,7 @@ public class Robot extends SampleRobot
 			{
 				driveleft = driveright = 0;
 			}
-			
+			/*
 			// auto dock
 			err = pidx.getDouble(0) / 100;
 
@@ -371,7 +374,7 @@ public class Robot extends SampleRobot
 				}
 
 			}
-			
+			*/
 				
 		// apply steering to move
 		if (drivesteer > 0)
@@ -391,7 +394,7 @@ public class Robot extends SampleRobot
 		double forwardModifier = 0;
 		//driveleft  = controllerDrive.getRawAxis(5);
 		//driveright = controllerDrive.getRawAxis(1);
-		if (controllerDrive.getRawButton(3)) {
+		if (controllerDrive.getRawButton(buttonGreenA)) {
 			System.out.println("PBUTTON DOWN");
 			steeringAdjust = Kp*error;
 			if (error > 3.0)
