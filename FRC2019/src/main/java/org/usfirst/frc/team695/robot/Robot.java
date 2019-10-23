@@ -67,12 +67,6 @@ public class Robot extends SampleRobot
 	// user controller objects
 	private Joystick controllerLiftJack = new Joystick(1);
 	private Joystick controllerDrive = new Joystick(0);
-	
-	// lidar distance
-	private Counter lidar1 = new Counter(9);
-
-	// jack rotation counter
-	private Counter countJack = new Counter();
 
 	// jack in limit switch
 	private DigitalInput jackin = new DigitalInput(1);
@@ -80,7 +74,6 @@ public class Robot extends SampleRobot
 	// hatch detection switches
 	private DigitalInput hatchleft = new DigitalInput(6);
 	private DigitalInput hatchright = new DigitalInput(5);
-	//private DigitalInput pistonRetractDetector = new DigitalInput(5); //value to be ssigned, for the retraction of the jack
 	// motor controllers
 	private VictorSPX motorL1 = new VictorSPX(1);
 	private VictorSPX motorL2 = new VictorSPX(2);
@@ -94,7 +87,6 @@ public class Robot extends SampleRobot
 	/****************************************************************/
 	private void retractJackUnlessAlreadyRetracted(double movejack) {
 		movejack = -movejack; //so negative inputs correspond to downwards jack movement
-		//System.out.println(Double.toString(movejack) + " SWITCH VALUE : " + Boolean.toString(jackin.get()));
 		//switch is false when pushed in but true when not pushed in
 		if (movejack > 0 && !jackin.get()) { //prevent retracting (moving upwards) if pushed in 
 			movejack = 0;
@@ -103,48 +95,6 @@ public class Robot extends SampleRobot
 	}
 	
 	
-	public double regulate(double speed, long elevatorpos)
-	{
-		if ((elevatorpos >= 1250) && (elevatorpos < 3750))
-		{
-			if (speed > 0.6)
-			{
-				speed = 0.6;
-			}
-			else if (speed < -0.6)
-			{
-				speed = -0.6;
-			}
-		}
-		if (elevatorpos >= 3750)
-		{
-			if (speed > 0.3)
-			{
-				speed = 0.3;
-			}
-			else if (speed < -0.3)
-			{
-				speed = -0.3;
-			}
-		}
-		return(speed);
-	}
-	
-	// function getLidar() returns distance in inches
-	public double getLidar()
-	{
-		if (lidar1.get() < 1)
-		{
-			System.out.println("Lidar connected to DIO9?");
-			return 0;
-		}
-		/* getPeriod returns time in seconds. The hardware resolution is microseconds.
-		 * The LIDAR-Lite unit sends a high signal for 10 microseconds per cm of distance.
-		 */
-		
-		return((lidar1.getPeriod() * 1000000.0 / 10.0) / 2.54);
-	}
-
 	
 	
 	
@@ -191,43 +141,7 @@ public class Robot extends SampleRobot
 		limeTy = limeLightValues.getEntry("ty");
 		limeTa = limeLightValues.getEntry("ta"); 		
 		comp.enabled();
-
-		countJack.setUpSource(0);
-		countJack.setUpDownCounterMode();
-		System.out.println("count: " + countJack.get());
-		
 		forks.set(false);
-
-		//lidar1.setMaxPeriod(1.0);
-	    //lidar1.setSemiPeriodMode(true);
-	    //lidar1.reset();
-
-		/*
-		CameraServer.getInstance().startAutomaticCapture();
-		
-		
-		System.out.println("695:  robotInit():  camera");
-		new Thread(() ->
-		{
-           UsbCamera camera = CameraServer.getInstance().startAutomaticCapture();
-           camera.setResolution(320, 240);
-           camera.setFPS(10);
-           
-           CvSink cvSink = CameraServer.getInstance().getVideo();
-           CvSource outputStream = CameraServer.getInstance().putVideo("Blur", 320, 240);
-           
-           Mat source = new Mat();
-           Mat output = new Mat();
-           
-           while(!Thread.interrupted())
-           {
-               cvSink.grabFrame(source);
-               Imgproc.cvtColor(source, output, Imgproc.COLOR_BGR2GRAY);
-               outputStream.putFrame(output);
-           }
-       }
-		).start();
-		*/	
 		
 	}
 
@@ -305,20 +219,16 @@ public class Robot extends SampleRobot
 		
 		double azimuthToTarget;// = limeTx.getDouble(0.0);
 		double error;
-		double y;// = limeTy.getDouble(0.0);
-		double area;// = limeTa.getDouble(0.0);
+		double copolarToTarget;// = limeTy.getDouble(0.0);
+		double areaOfContour;// = limeTa.getDouble(0.0);
 		double Kp = 0.03;  // Proportional control constant
 		double steeringAdjust = 0;
 		double minCommand = -0.015;
 
-
-		double movejack;
-
 		System.out.println("695:  operatorControl()...");
 		System.out.println("Ring is green!");
 		ringop.setNumber(3);
-		countJack.reset();
-
+		
 		while(isEnabled())
 		{
 			// *********
@@ -462,38 +372,20 @@ public class Robot extends SampleRobot
 
 			}
 			
-			
-
-			// check for dime turn drive
-		//	if ((driveleft >= -0.1) && (driveleft <= 0.1))
-		//	{
-		//		drivesteer *= 0.4;
-		//		driveleft = -1 * drivesteer;
-		//		driveright = drivesteer;
-		//	}
-			
-			// otherwise drive normally forward / backwards
-		//	else
-		//	{
 				
-				// apply steering to move
-				if (drivesteer > 0)
-				{
-					driveleft = driveleft * (1 - drivesteer);
-				}
-				if (drivesteer < 0)
-				{
-					driveright = driveright * (1 + drivesteer);
-				}
-
-				// adjust speed if elevator raised
-				driveleft = regulate(driveleft, 0);
-				driveright = regulate(driveright, 0);
+		// apply steering to move
+		if (drivesteer > 0)
+		{
+			driveleft = driveleft * (1 - drivesteer);
+		}
+		if (drivesteer < 0)
+		{
+			driveright = driveright * (1 + drivesteer);
+		}
 				
-		//	}
 		azimuthToTarget = error = limeTx.getDouble(0.0);
-		y = limeTy.getDouble(0.0);
-		area = limeTa.getDouble(0.0);
+		copolarToTarget = limeTy.getDouble(0.0);
+		areaOfContour = limeTa.getDouble(0.0);
 
 		//System.out.println("LIME DATA: X: " + Double.toString(azimuthToTarget) + " Y: " + Double.toString(y) + " AREA: " + Double.toString(area));
 		double forwardModifier = 0;
