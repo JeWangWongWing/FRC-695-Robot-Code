@@ -65,7 +65,7 @@ public class Robot extends SampleRobot
 	private Solenoid forks = new Solenoid(2);
 
 	// user controller objects
-	private Joystick controllerLiftJack = new Joystick(3);
+	private Joystick controllerLiftJack = new Joystick(1);
 	private Joystick controllerDrive = new Joystick(0);
 	
 	// lidar distance
@@ -80,7 +80,7 @@ public class Robot extends SampleRobot
 	// hatch detection switches
 	private DigitalInput hatchleft = new DigitalInput(6);
 	private DigitalInput hatchright = new DigitalInput(5);
-	private DigitalInput pistonRetractDetector = new DigitalInput(5); //value to be ssigned, for the retraction of the jack
+	//private DigitalInput pistonRetractDetector = new DigitalInput(5); //value to be ssigned, for the retraction of the jack
 	// motor controllers
 	private VictorSPX motorL1 = new VictorSPX(1);
 	private VictorSPX motorL2 = new VictorSPX(2);
@@ -92,12 +92,14 @@ public class Robot extends SampleRobot
 	/****************************************************************/
 	/****************************************************************/
 	/****************************************************************/
-	//private void retractPiston() {
-
-
-	//}
-	public void leds()
-	{
+	private void retractJackUnlessAlreadyRetracted(double movejack) {
+		movejack = -movejack; //so negative inputs correspond to downwards jack movement
+		//System.out.println(Double.toString(movejack) + " SWITCH VALUE : " + Boolean.toString(jackin.get()));
+		//switch is false when pushed in but true when not pushed in
+		if (movejack > 0 && !jackin.get()) { //prevent retracting (moving upwards) if pushed in 
+			movejack = 0;
+		}
+		motorJack.set(ControlMode.PercentOutput, movejack);
 	}
 	
 	
@@ -301,7 +303,8 @@ public class Robot extends SampleRobot
 		double driveright;
 		double drivesteer;
 		
-		double x;// = limeTx.getDouble(0.0);
+		double azimuthToTarget;// = limeTx.getDouble(0.0);
+		double error;
 		double y;// = limeTy.getDouble(0.0);
 		double area;// = limeTa.getDouble(0.0);
 		double Kp = 0.03;  // Proportional control constant
@@ -335,36 +338,7 @@ public class Robot extends SampleRobot
 				forksdebounce = 0;
 			}
 			
-			movejack = controllerLiftJack.getRawAxis(1);
-			if ((movejack >= -0.5) && (movejack <= 0.5))
-			{
-				movejack = 0;
-			}
-			
-			if (jackin.get() == true)
-			{
-				countJack.reset();
-			}
-			
-			// jack moving in
-			if (movejack > 0)
-			{
-				if (jackin.get() == true)
-				{
-					movejack = 0;
-				}
-			}
-			
-			// jack moving out
-			if (movejack < 0)
-			{
-				if (countJack.get() >= 470)
-				{
-					movejack = 0;
-				}
-			}
-			motorJack.set(ControlMode.PercentOutput, movejack);
-						
+			retractJackUnlessAlreadyRetracted(controllerLiftJack.getRawAxis(1));
 			if ((hatchleft.get() == true) && (hatchright.get() == true))
 			{
 				hatch.set(true);
@@ -517,24 +491,24 @@ public class Robot extends SampleRobot
 				driveright = regulate(driveright, 0);
 				
 		//	}
-		x = limeTx.getDouble(0.0);
+		azimuthToTarget = error = limeTx.getDouble(0.0);
 		y = limeTy.getDouble(0.0);
 		area = limeTa.getDouble(0.0);
 
-		System.out.println("LIME DATA: X: " + Double.toString(x) + " Y: " + Double.toString(y) + " AREA: " + Double.toString(area));
+		//System.out.println("LIME DATA: X: " + Double.toString(azimuthToTarget) + " Y: " + Double.toString(y) + " AREA: " + Double.toString(area));
 		double forwardModifier = 0;
 		//driveleft  = controllerDrive.getRawAxis(5);
 		//driveright = controllerDrive.getRawAxis(1);
 		if (controllerDrive.getRawButton(3)) {
 			System.out.println("PBUTTON DOWN");
-			steeringAdjust = Kp*x;
-			if (x > 3.0)
+			steeringAdjust = Kp*error;
+			if (error > 3.0)
 			{
-				steeringAdjust = Kp*x - minCommand;
+				steeringAdjust = Kp*error - minCommand;
 			}
-			else if (x < 3.0)
+			else if (error < 3.0)
 			{
-				steeringAdjust = Kp*x + minCommand;
+				steeringAdjust = Kp*error + minCommand;
 				forwardModifier = 0;//-0.5;
 			}
 			//driveleft = driveright; //disable tank drive by ignoring right stick, left becomes the throttle
@@ -560,7 +534,7 @@ public class Robot extends SampleRobot
 				tickcnt = 0;
 				//System.out.println("raw button 2: " + controllerDrive.getRawButton(2));
 				//System.out.println("driveleft=" + driveleft + ", driveright=" + driveright + ", drivesteer=" + drivesteer);
-				System.out.println("GAIN: " + pgain);
+				//System.out.println("GAIN: " + pgain);
 				//System.out.println("JACK: " + countJack.get());
 				//System.out.println("695:  operatorControl(" + (++cnt) + ")");
 				//System.out.println(hatchleft.get() + " / " + hatchright.get());
@@ -569,7 +543,7 @@ public class Robot extends SampleRobot
 				//System.out.println("   jack distance: " + getLidar());
 				//System.out.println("   jack in: " + jackin.get());
 				//System.out.println("   movejack: " + movejack);
-				leds();
+				//leds();
 		
 			}
 			
