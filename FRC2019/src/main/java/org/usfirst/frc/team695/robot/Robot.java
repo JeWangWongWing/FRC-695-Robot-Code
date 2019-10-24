@@ -222,8 +222,7 @@ public class Robot extends SampleRobot
 		long povdebounce = 0;
 		long boostPistonDebounce = 0;
 		
-		boolean hatchButtonInPressedState = false;
-
+		
 		long tickcnt = 0;
 		
 		double err, pgain = 0.3;
@@ -317,14 +316,17 @@ public class Robot extends SampleRobot
 			}
 			
 			// hatch
-			if (!hatchButtonInPressedState && controllerDrive.getRawButton(buttonYellowY) == true)
+			if (controllerDrive.getRawButton(buttonYellowY) == true)
 			{
-				hatchButtonInPressedState = true;
-				hatch.set(!hatch.get());
+				if (hatchdebounce == 0)
+				{
+					hatchdebounce = 1;
+					hatch.set(!hatch.get());
+				}
 			}
 			else
 			{
-				hatchButtonInPressedState = false;
+				hatchdebounce = 0;
 			}
 			
 			if (hatchleft.get() == true)
