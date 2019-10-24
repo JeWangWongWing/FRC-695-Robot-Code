@@ -46,10 +46,20 @@ buttons:
 
 public class Robot extends SampleRobot
 {
+	//button ids
 	private int buttonBlueX = 3;
 	private int buttonGreenA = 1;
 	private int buttonRedB = 2;
 	private int buttonYellowY = 4;
+	//axis ids
+	private int leftXAxis = 0;
+	private int leftYAxis = 1;
+
+	private int rightXAxis = 4;
+	private int rightYAxis = 5;
+
+	private int leftTriggerAxis = 2;
+	private int rightTriggerAxis = 3;
 	// network communications
 	private NetworkTableInstance inst;
 	private NetworkTable table;
@@ -212,6 +222,8 @@ public class Robot extends SampleRobot
 		long povdebounce = 0;
 		long boostPistonDebounce = 0;
 		
+		boolean hatchButtonInPressedState = false;
+
 		long tickcnt = 0;
 		
 		double err, pgain = 0.3;
@@ -227,7 +239,7 @@ public class Robot extends SampleRobot
 		double Kp = 0.03;  // Proportional control constant
 		double steeringAdjust = 0;
 		double minCommand = -0.015;
-
+		double driveSensitivity = 1;
 		System.out.println("695:  operatorControl()...");
 		System.out.println("Ring is green!");
 		ringop.setNumber(3);
@@ -252,11 +264,11 @@ public class Robot extends SampleRobot
 			}
 			
 			retractJackUnlessAlreadyRetracted(controllerLiftJack.getRawAxis(1));
-			if ((hatchleft.get() == true) && (hatchright.get() == true))
+			if ((hatchleft.get()) && (hatchright.get()))
 			{
 				hatch.set(true);
 			}
-
+			/*
 			if (controllerDrive.getPOV() != -1)
 			{
 				if (povdebounce == 0)
@@ -282,7 +294,7 @@ public class Robot extends SampleRobot
 			{
 				povdebounce = 0;
 			}
-									
+			*/						
 			// lift
 			if (controllerDrive.getRawButton(buttonRedB) == true)
 			{
@@ -305,24 +317,14 @@ public class Robot extends SampleRobot
 			}
 			
 			// hatch
-			if (controllerDrive.getRawButton(buttonYellowY) == true)
+			if (!hatchButtonInPressedState && controllerDrive.getRawButton(buttonYellowY) == true)
 			{
-				if (hatchdebounce == 0)
-				{
-					hatchdebounce = 1;
-					if (hatch.get() == true)
-					{
-						hatch.set(false);
-					}
-					else
-					{
-						hatch.set(true);
-					}
-				}
+				hatchButtonInPressedState = true;
+				hatch.set(!hatch.get());
 			}
 			else
 			{
-				hatchdebounce = 0;
+				hatchButtonInPressedState = false;
 			}
 			
 			if (hatchleft.get() == true)
@@ -347,9 +349,13 @@ public class Robot extends SampleRobot
 			// drive code
 			//***********
 
-			// drive speedn
-			driveleft = driveright = controllerDrive.getRawAxis(1);
-			drivesteer = controllerDrive.getRawAxis(4);
+			// drive speed
+			driveSensitivity = 1-(controllerDrive.getRawAxis(rightTriggerAxis)); 
+			if (driveSensitivity <= 0.25) {//do not let it become zero
+				driveSensitivity = 0.25;
+			} 
+			driveleft = driveright = controllerDrive.getRawAxis(leftYAxis)*(driveSensitivity); //speed is scales by how much controller drive is compressed
+			drivesteer = controllerDrive.getRawAxis(rightXAxis);
 
 			if ((driveleft >= -0.1) && (driveleft <= 0.1))
 			{
@@ -395,7 +401,7 @@ public class Robot extends SampleRobot
 		//driveleft  = controllerDrive.getRawAxis(5);
 		//driveright = controllerDrive.getRawAxis(1);
 		if (controllerDrive.getRawButton(buttonGreenA)) {
-			System.out.println("PBUTTON DOWN");
+			//System.out.println("PBUTTON DOWN");
 			steeringAdjust = Kp*error;
 			if (error > 3.0)
 			{
