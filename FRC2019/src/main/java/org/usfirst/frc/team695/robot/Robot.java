@@ -18,7 +18,9 @@ import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.SampleRobot;
 import edu.wpi.first.wpilibj.Solenoid;
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.cscore.UsbCamera;
 
+import edu.wpi.first.cameraserver.CameraServer;
 /*
 XBOX controls:
 
@@ -139,9 +141,10 @@ public class Robot extends SampleRobot
 	public void robotInit()
 	{
 		System.out.println("695:  robotInit()");
+		//this allows for the usb camera plugged into the robot to be shown on the dashboard
+		UsbCamera camera = CameraServer.getInstance().startAutomaticCapture();
+		camera.setResolution(160, 120);
 
-		//UsbCamera camera = CameraServer.getInstance().startAutomaticCapture();
-		//camera.setResolution(160, 120);
 
 		inst = NetworkTableInstance.getDefault();
 		table = inst.getTable("SmartDashboard");
