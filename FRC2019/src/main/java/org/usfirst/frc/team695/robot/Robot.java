@@ -425,11 +425,11 @@ public class Robot extends SampleRobot
 			// drive speed
 		}
 			
-			motorL1.set(ControlMode.PercentOutput, driveleft);
-			motorL2.set(ControlMode.PercentOutput, driveleft);
+			motorL1.set(ControlMode.PercentOutput, .7*driveleft);
+			motorL2.set(ControlMode.PercentOutput, .7*driveleft);
 
-			motorR1.set(ControlMode.PercentOutput, -1 * driveright);
-			motorR2.set(ControlMode.PercentOutput, -1 * driveright);
+			motorR1.set(ControlMode.PercentOutput, -1 * .7*driveright);
+			motorR2.set(ControlMode.PercentOutput, -1 * .7*driveright);
 
 						
 			//******************************
