@@ -18,6 +18,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import com.ctre.phoenix.motorcontrol.ControlMode;
 import com.ctre.phoenix.motorcontrol.can.VictorSPX;
 
+
 /**
  * This is a demo program showing the use of the RobotDrive class. The
  * SampleRobot class is the base of a robot application that will automatically
@@ -39,18 +40,20 @@ public class Robot extends SampleRobot {
   private static final String kDefaultAuto = "Default";
   private static final String kCustomAuto = "My Auto";
 
-  private final DifferentialDrive m_robotDrive
+  /*private final DifferentialDrive m_robotDrive
       = new DifferentialDrive(new PWMVictorSPX(0), new PWMVictorSPX(1));
-  private final Joystick m_stick = new Joystick(0);
+  private final Joystick m_stick = new Joystick(0);*/
   private final SendableChooser<String> m_chooser = new SendableChooser<>();
 
   private VictorSPX motorL1 = new VictorSPX(1);
 	private VictorSPX motorL2 = new VictorSPX(2);
 	private VictorSPX motorR1 = new VictorSPX(3);
-	private VictorSPX motorR2 = new VictorSPX(4);
+  private VictorSPX motorR2 = new VictorSPX(4);
+  
+  private Joystick controllerDrive = new Joystick(0);
 
   public Robot() {
-    m_robotDrive.setExpiration(0.1);
+    //m_robotDrive.setExpiration(0.1);
   }
 
   @Override
@@ -60,22 +63,35 @@ public class Robot extends SampleRobot {
     SmartDashboard.putData("Auto modes", m_chooser);
   }
 
-  public void operator()
+  public void operatorControl()
   {
     double driveleft = 0;
     double driveright = 0;
 
+    double mgain = 0.5;
+
     while(isEnabled())
     {
-      driveleft = driveleft;
-			driveright = driveright;
+      // allows rightstick to turn the robot without moving leftsick
+      driveleft  = controllerDrive.getRawAxis(1) - controllerDrive.getRawAxis(4);
+      driveright = controllerDrive.getRawAxis(1) + controllerDrive.getRawAxis(4);
+
+      driveleft  = controllerDrive.getRawAxis(1)-controllerDrive.getRawAxis(0);
+      driveright = controllerDrive.getRawAxis(1)+controllerDrive.getRawAxis(0);
+
+      driveleft  = controllerDrive.getRawAxis(1)-controllerDrive.getRawAxis(4);
+      driveright = controllerDrive.getRawAxis(1)+controllerDrive.getRawAxis(4);
+
+      driveleft  = mgain * driveleft;
+			driveright = mgain * driveright;
 
 			motorL1.set(ControlMode.PercentOutput, driveleft);
 			motorL2.set(ControlMode.PercentOutput, driveleft);
 
 			motorR1.set(ControlMode.PercentOutput, -1 * driveright);
-			motorR2.set(ControlMode.PercentOutput, -1 * driveright);
+      motorR2.set(ControlMode.PercentOutput, -1 * driveright);
     }
+    Timer.delay(0.005);
   }
 
   /**
@@ -124,7 +140,7 @@ public class Robot extends SampleRobot {
     // MotorSafety improves safety when motors are updated in loops
     // but is disabled here because motor updates are not looped in
     // this autonomous mode.
-    m_robotDrive.setSafetyEnabled(false);
+    /*m_robotDrive.setSafetyEnabled(false);
 
     switch (autoSelected) {
       case kCustomAuto:
@@ -144,7 +160,7 @@ public class Robot extends SampleRobot {
         // Stop robot
         m_robotDrive.arcadeDrive(0.0, 0.0);
         break;
-    }
+    }*/
   }
 
   /**
@@ -160,7 +176,7 @@ public class Robot extends SampleRobot {
    * }
    * }</pre></blockquote>
    */
-  @Override
+  /*@Override
   public void operatorControl() {
     m_robotDrive.setSafetyEnabled(true);
     while (isOperatorControl() && isEnabled()) {
@@ -170,7 +186,7 @@ public class Robot extends SampleRobot {
       // The motors will be updated every 5ms
       Timer.delay(0.005);
     }
-  }
+  }*/
 
   /**
    * Runs during test mode.
