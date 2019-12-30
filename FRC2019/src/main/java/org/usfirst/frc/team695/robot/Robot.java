@@ -36,7 +36,7 @@ buttons:
 2 B
 3 X
 4 Y
-5 left bump
+5 left bump test chane
 6 right bump
 7 multi screen
 8 options
