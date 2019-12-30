@@ -37,11 +37,11 @@ buttons:
 3 X
 4 Y
 5 left bump
-6 right bump
+6 right bump	
 7 multi screen
-8 options
+8 options test changwe
 9 left push
-10 right push
+10 right push abcderg
 
 */
 
