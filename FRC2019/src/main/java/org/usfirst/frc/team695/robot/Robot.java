@@ -27,7 +27,7 @@ XBOX controls:
 axis:
 0 left X
 1 left Y
-2 left trigger
+2 left trigger test change
 3 right trigger
 4 right X
 5 right Y
